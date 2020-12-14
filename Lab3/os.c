@@ -113,14 +113,13 @@ int OS_AddThreads(void(*thread0)(void),
   return 1;	// successful
 }
 
-#define NUMPERIODICTHREADS 2
 uint32_t periodic_thread_index = 0;
 struct event_tcb{
   void (*task)(void);
   uint32_t period;
 };
 
-struct event_tcb periodic_thread[NUMPERIODICTHREADS];
+struct event_tcb periodic_thread[NUMPERIODIC];
 uint32_t max_period = 0;
 //******** OS_AddPeriodicEventThread ***************
 // Add one background periodic event thread
@@ -165,7 +164,7 @@ void static runperiodicevents(void){
   }
   
   //Run periodic threads
-  for (i = 0; i< NUMPERIODICTHREADS; i++)
+  for (i = 0; i< NUMPERIODIC; i++)
   {
     if ((counter % periodic_thread[i].period) == 0){
       periodic_thread[i].task(); // run this periodic task
