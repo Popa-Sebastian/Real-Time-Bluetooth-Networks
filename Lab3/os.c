@@ -74,14 +74,14 @@ int OS_AddThreads(void(*thread0)(void),
 // initialize TCB circular list
 // initialize RunPt
 // initialize six stacks, including initial PC
-	int32_t status;
+  int32_t status;
   status = StartCritical();
   tcbs[0].next = &tcbs[1]; // 0 points to 1
   tcbs[1].next = &tcbs[2]; // 1 points to 2
   tcbs[2].next = &tcbs[3]; // 2 points to 3
   tcbs[3].next = &tcbs[4]; // 3 points to 4
-	tcbs[4].next = &tcbs[5]; // 4 points to 5
-	tcbs[5].next = &tcbs[0]; // 5 points to 0
+  tcbs[4].next = &tcbs[5]; // 4 points to 5
+  tcbs[5].next = &tcbs[0]; // 5 points to 0
   
 // initialize blocked fields to 0
 // zero values means not block
@@ -104,8 +104,8 @@ int OS_AddThreads(void(*thread0)(void),
   SetInitialStack(0); Stacks[0][STACKSIZE-2] = (int32_t)(thread0); // PC
   SetInitialStack(1); Stacks[1][STACKSIZE-2] = (int32_t)(thread1); // PC
   SetInitialStack(2); Stacks[2][STACKSIZE-2] = (int32_t)(thread2); // PC
-	SetInitialStack(3); Stacks[3][STACKSIZE-2] = (int32_t)(thread3); // PC
-	SetInitialStack(4); Stacks[4][STACKSIZE-2] = (int32_t)(thread4); // PC
+  SetInitialStack(3); Stacks[3][STACKSIZE-2] = (int32_t)(thread3); // PC
+  SetInitialStack(4); Stacks[4][STACKSIZE-2] = (int32_t)(thread4); // PC
   SetInitialStack(5); Stacks[5][STACKSIZE-2] = (int32_t)(thread5); // PC
                    
   RunPt = &tcbs[0];        // thread 0 will run first
