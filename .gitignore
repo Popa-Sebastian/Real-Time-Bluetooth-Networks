@@ -1,11 +1,1 @@
 /inc/
-
-*.scvd
-*.uvuix
-*.uvoptx
-.uvprojx
-*.o
-
-Lab1/Listings/
-Lab1/Objects/
-Lab1/RTE/
