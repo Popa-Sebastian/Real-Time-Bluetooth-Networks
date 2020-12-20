@@ -23,6 +23,7 @@ struct tcb{
 //*FILL THIS IN****
   int32_t *blocked;  // nonzero if blocked on this semaphore
   uint32_t sleep;    // nonzero if this thread is sleeping
+  uint32_t priority; // priority between 0-254, 0 - highest
 };
 typedef struct tcb tcbType;
 tcbType tcbs[NUMTHREADS];
@@ -124,6 +125,16 @@ int OS_AddThreads(void(*thread0)(void), uint32_t p0,
   SetInitialStack(5); Stacks[5][STACKSIZE-2] = (int32_t)(thread5); // PC
   SetInitialStack(6); Stacks[6][STACKSIZE-2] = (int32_t)(thread6); // PC
   SetInitialStack(7); Stacks[7][STACKSIZE-2] = (int32_t)(thread7); // PC
+
+// Init priority levels
+  tcbs[0].priority = p0;
+  tcbs[1].priority = p1;
+  tcbs[2].priority = p2;
+  tcbs[3].priority = p3;
+  tcbs[4].priority = p4;
+  tcbs[5].priority = p5;
+  tcbs[6].priority = p6;
+  tcbs[7].priority = p7;
 
   RunPt = &tcbs[0];        // thread 0 will run first
   EndCritical(status);
