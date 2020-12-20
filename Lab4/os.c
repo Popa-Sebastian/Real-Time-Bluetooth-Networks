@@ -176,11 +176,23 @@ void Scheduler(void){      // every time slice
 // look at all threads in TCB list choose
 // highest priority thread not blocked and not sleeping 
 // If there are multiple highest priority (not blocked, not sleeping) run these round robin
-  RunPt = RunPt->next; // skip at least one
-  while((RunPt->sleep)||(RunPt-> blocked))
-  {
-    RunPt = RunPt->next; // find one not sleeping and not blocked
-  }
+  uint32_t highestPrio = 255; // max
+  tcbType *pt;
+  tcbType *bestPt;
+  pt = RunPt;
+
+  // search for highest priority thread not blocked or sleeping
+  // highest priority = lower value
+  // not blocked = 0
+  // not sleeping = 0
+  do{
+    pt = pt->next;    // skips at least one
+    if((pt->priority < highestPrio)&&((pt->blocked) == 0)&&((pt->sleep) == 0)){
+      highestPrio = pt->priority;
+      bestPt = pt;
+    }
+  } while(RunPt != pt); // look at all possible threads
+  RunPt = bestPt;
 }
 
 //******** OS_Suspend ***************
