@@ -90,7 +90,9 @@ int OS_AddThreads(void(*thread0)(void), uint32_t p0,
   tcbs[2].next = &tcbs[3]; // 2 points to 3
   tcbs[3].next = &tcbs[4]; // 3 points to 4
   tcbs[4].next = &tcbs[5]; // 4 points to 5
-  tcbs[5].next = &tcbs[0]; // 5 points to 0
+  tcbs[5].next = &tcbs[6]; // 5 points to 6
+  tcbs[6].next = &tcbs[7]; // 6 points to 7
+  tcbs[7].next = &tcbs[0]; // 7 points to 0
 
 // initialize blocked fields to 0
 // zero values means not block
@@ -100,6 +102,8 @@ int OS_AddThreads(void(*thread0)(void), uint32_t p0,
   tcbs[3].blocked = 0;
   tcbs[4].blocked = 0;
   tcbs[5].blocked = 0;
+  tcbs[6].blocked = 0;
+  tcbs[7].blocked = 0;
 
 // initialize sleep fields to 0
 // zero values means not sleeping
@@ -109,6 +113,8 @@ int OS_AddThreads(void(*thread0)(void), uint32_t p0,
   tcbs[3].sleep = 0;
   tcbs[4].sleep = 0;
   tcbs[5].sleep = 0;
+  tcbs[6].sleep = 0;
+  tcbs[7].sleep = 0;
 
   SetInitialStack(0); Stacks[0][STACKSIZE-2] = (int32_t)(thread0); // PC
   SetInitialStack(1); Stacks[1][STACKSIZE-2] = (int32_t)(thread1); // PC
@@ -116,6 +122,8 @@ int OS_AddThreads(void(*thread0)(void), uint32_t p0,
   SetInitialStack(3); Stacks[3][STACKSIZE-2] = (int32_t)(thread3); // PC
   SetInitialStack(4); Stacks[4][STACKSIZE-2] = (int32_t)(thread4); // PC
   SetInitialStack(5); Stacks[5][STACKSIZE-2] = (int32_t)(thread5); // PC
+  SetInitialStack(6); Stacks[6][STACKSIZE-2] = (int32_t)(thread6); // PC
+  SetInitialStack(7); Stacks[7][STACKSIZE-2] = (int32_t)(thread7); // PC
 
   RunPt = &tcbs[0];        // thread 0 will run first
   EndCritical(status);
