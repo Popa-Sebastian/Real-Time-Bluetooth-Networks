@@ -129,7 +129,15 @@ void static runperiodicevents(void){
 // ****IMPLEMENT THIS****
 // **DECREMENT SLEEP COUNTERS
 // In Lab 4, handle periodic events in RealTimeEvents
-  
+  int i;
+  //Decrement sleep counters
+  for (i = 0; i < NUMTHREADS; i++)
+  {
+    if (tcbs[i].Sleep)
+    {
+      tcbs[i].Sleep--;
+    }
+  }  
 }
 
 //******** OS_Launch ***************
@@ -151,7 +159,23 @@ void Scheduler(void){      // every time slice
 // look at all threads in TCB list choose
 // highest priority thread not blocked and not sleeping 
 // If there are multiple highest priority (not blocked, not sleeping) run these round robin
+  uint32_t highestPrio = 255; // max
+  tcbType *pt;
+  tcbType *bestPt;
+  pt = RunPt;
 
+  // search for highest priority thread not blocked or sleeping
+  // highest priority = lower value
+  // not blocked = 0
+  // not sleeping = 0
+  do{
+    pt = pt->next;    // skips at least one
+    if((pt->Priority < highestPrio)&&((pt->BlockPt) == 0)&&((pt->Sleep) == 0)){
+      highestPrio = pt->Priority;
+      bestPt = pt;
+    }
+  } while(RunPt != pt); // look at all possible threads
+  RunPt = bestPt;
   
 }
 
@@ -222,7 +246,8 @@ void OS_Sleep(uint32_t sleepTime){
 // ****IMPLEMENT THIS****
 // set sleep parameter in TCB, same as Lab 3
 // suspend, stops running
-  
+  RunPt->Sleep = sleepTime;
+  OS_Suspend();
 }
 
 // ******** OS_InitSemaphore ************
@@ -233,6 +258,7 @@ void OS_Sleep(uint32_t sleepTime){
 void OS_InitSemaphore(int32_t *semaPt, int32_t value){
 // ****IMPLEMENT THIS****
 // Same as Lab 3
+   *semaPt = value;
 }
 
 // ******** OS_Wait ************
@@ -244,7 +270,14 @@ void OS_InitSemaphore(int32_t *semaPt, int32_t value){
 void OS_Wait(int32_t *semaPt){
 // ****IMPLEMENT THIS****
 // Same as Lab 3
-
+  DisableInterrupts();
+ (*semaPt) = (*semaPt) - 1;
+ if((*semaPt) < 0){
+   RunPt->BlockPt = semaPt; // reason it is blocked
+   EnableInterrupts();
+   OS_Suspend();       // run thread switcher
+ }
+ EnableInterrupts();
 }
 
 // ******** OS_Signal ************
@@ -256,6 +289,17 @@ void OS_Wait(int32_t *semaPt){
 void OS_Signal(int32_t *semaPt){
 // ****IMPLEMENT THIS****
 // Same as Lab 3
+      tcbType *pt;
+  DisableInterrupts();
+  (*semaPt) = (*semaPt) + 1;
+  if((*semaPt) <= 0){
+    pt = RunPt->next;   // search for a thread blocked on this semaphore
+    while(pt->BlockPt != semaPt){
+      pt = pt->next;
+    }
+    pt->BlockPt = 0;    // wakeup this one
+  }
+  EnableInterrupts();
 
 }
 
@@ -278,7 +322,9 @@ uint32_t LostData;  // number of lost pieces of data
 void OS_FIFO_Init(void){
 // ****IMPLEMENT THIS****
 // Same as Lab 3
- 
+  PutI = GetI = 0;   // Empty
+  OS_InitSemaphore(&CurrentSize, 0);
+  LostData = 0;
 }
 
 // ******** OS_FIFO_Put ************
@@ -291,8 +337,17 @@ void OS_FIFO_Init(void){
 int OS_FIFO_Put(uint32_t data){
 // ****IMPLEMENT THIS****
 // Same as Lab 3
-  
- return 0; // success
+  if(CurrentSize == FSIZE)
+  {
+      LostData++;
+      return -1;         // full
+  } else
+  {
+      Fifo[PutI] = data; // Put
+      PutI = (PutI+1)%FSIZE;
+      OS_Signal(&CurrentSize);
+      return 0; // success
+   }
 }
 
 // ******** OS_FIFO_Get ************
@@ -305,6 +360,9 @@ int OS_FIFO_Put(uint32_t data){
 uint32_t OS_FIFO_Get(void){uint32_t data;
 // ****IMPLEMENT THIS****
 // Same as Lab 3
+  OS_Wait(&CurrentSize);    // block if empty
+  data = Fifo[GetI];        // get
+  GetI = (GetI+1)%FSIZE; // place to get next
  return data;
   
 }
@@ -366,22 +424,27 @@ int32_t *edgeSemaphore;
 void OS_EdgeTrigger_Init(int32_t *semaPt, uint8_t priority){
   edgeSemaphore = semaPt;
 //***IMPLEMENT THIS***
-// 1) activate clock for Port D
-// allow time for clock to stabilize
-// 2) no need to unlock PD6
-// 3) disable analog on PD6
-// 4) configure PD6 as GPIO
-// 5) make PD6 input
-// 6) disable alt funct on PD6
-// disable pull-up on PD6
-// 7) enable digital I/O on PD6  
-// (d) PD6 is edge-sensitive 
-//     PD6 is not both edges 
-//     PD6 is falling edge event 
-// (e) clear PD6 flag
-// (f) arm interrupt on PD6
-// priority on Port D edge trigger is NVIC_PRI0_R	31 – 29
-// enable is bit 3 in NVIC_EN0_R
+  SYSCTL_RCGCGPIO_R |= 0x00000008;    // 1) activate clock for Port D
+  while((SYSCTL_PRGPIO_R&0x08) == 0){};// allow time for clock to stabilize
+                                      // 2) no need to unlock PD6
+  GPIO_PORTD_AMSEL_R &= ~0x40;        // 3) disable analog on PD6
+                                      // 4) configure PD6 as GPIO
+  GPIO_PORTD_PCTL_R = (GPIO_PORTD_PCTL_R&0xF0FFFFFF)+0x00000000;
+  GPIO_PORTD_DIR_R &= ~0x40;          // 5) make PD6 input
+  GPIO_PORTD_AFSEL_R &= ~0x40;        // 6) disable alt funct on PD6
+  GPIO_PORTD_PUR_R &= ~0x40;          // disable pull-up on PD6
+  GPIO_PORTD_DEN_R |= 0x40;           // 7) enable digital I/O on PD6
+  GPIO_PORTD_IS_R &= ~0x40;           // (d) PD6 is edge-sensitive
+  GPIO_PORTD_IBE_R &= ~0x40;          //     PD6 is not both edges
+  GPIO_PORTD_IEV_R &= ~0x40;          //     PD6 is falling edge event
+  GPIO_PORTD_ICR_R = 0x40;            // (e) clear PD6 flag
+  GPIO_PORTD_IM_R |= 0x40;            // (f) arm interrupt on PD6
+  // priority on Port D edge trigger is NVIC_PRI0_R	31 - 29
+  uint32_t PRIO = priority;
+  PRIO = PRIO << 29;
+  NVIC_PRI0_R = (NVIC_PRI0_R & 0x1FFFFFFF) | PRIO;
+  // enable interrupt
+  NVIC_EN0_R = 0X08;                  // enable is bit 3 in NVIC_EN0_R
 }
 
 // ******** OS_EdgeTrigger_Restart ************
@@ -391,14 +454,19 @@ void OS_EdgeTrigger_Init(int32_t *semaPt, uint8_t priority){
 // Outputs: none
 void OS_EdgeTrigger_Restart(void){
 //***IMPLEMENT THIS***
-// rearm interrupt 3 in NVIC
-// clear flag6
+  // rearm interrupt 3 in NVIC
+  NVIC_EN0_R = 0X08;
+  // clear flag6
+  GPIO_PORTD_ICR_R = 0x40; // clear PD6 flag
 }
 void GPIOPortD_Handler(void){
 //***IMPLEMENT THIS***
-	// step 1 acknowledge by clearing flag
+  // step 1 acknowledge by clearing flag
+  GPIO_PORTD_ICR_R = 0x40; // clear PD6 flag
   // step 2 signal semaphore (no need to run scheduler)
+  OS_Signal(edgeSemaphore);
   // step 3 disarm interrupt to prevent bouncing to create multiple signals
+  NVIC_EN0_R = ~0x08;
 }
 
 
