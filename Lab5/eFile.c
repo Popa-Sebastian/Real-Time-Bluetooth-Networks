@@ -51,9 +51,21 @@ void MountDirectory(void){
 // if the file has no end (i.e. the FAT is corrupted).
 uint8_t lastsector(uint8_t start){
 // **write this function**
-  
-	
-  return 0; // replace this line
+    uint8_t index_value;
+    uint8_t current_index;
+    if (start == 255) {
+      return 255;
+    } else {
+      current_index = start;
+      while (1) {
+          index_value = FAT[current_index];
+          if (index_value == 255) {
+              return current_index;
+          } else {
+              current_index = index_value;
+          }
+      }
+    }
 }
 
 // Return the index of the first free sector.
