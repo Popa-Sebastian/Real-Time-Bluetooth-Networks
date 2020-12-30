@@ -235,6 +235,8 @@ uint8_t OS_File_Format(void){
 // call eDiskFormat
 // clear bDirectoryLoaded to zero
 // **write this function**
-
-  return 0; // replace this line
+    int status;
+    status = eDisk_Format();
+    bDirectoryLoaded = 0;
+    return status; // replace this line
 }
