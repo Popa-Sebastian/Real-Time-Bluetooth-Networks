@@ -1,0 +1,10 @@
+*.scvd
+*.uvguix
+*.uvguix.*
+*.uvoptx
+*.uvprojx
+*.o
+
+Listings/
+Objects/
+RTE/
