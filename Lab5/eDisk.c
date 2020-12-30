@@ -106,9 +106,44 @@ enum DRESULT eDisk_WriteSector(
 // write 512 bytes from RAM (buff) into ROM (disk)
 // you can use Flash_FastWrite or Flash_WriteArray
 // **write this function**
-  
-			
-  return RES_OK;
+        
+    // Step 1: Get write_address
+    uint32_t write_address;
+    write_address = (uint32_t) (EDISK_ADDR_MIN + (512 * sector));
+    // Test if address is out of bounds
+    if (write_address > (uint32_t) EDISK_ADDR_MAX) {
+        return RES_PARERR;
+    }
+
+    // Step 2: Allign 8 bit values to 32bit values to use FLASH_WriteArray()
+    uint32_t alligned_32bit_data[128];
+    uint32_t index_32bit = 0;
+    for (int i = 0; i < 512; i = i + 4) {
+        alligned_32bit_data[index_32bit] = 0;
+        // Byte 1
+        alligned_32bit_data[index_32bit] += buff[i+3];
+        alligned_32bit_data[index_32bit] = (alligned_32bit_data[index_32bit] << 8);
+        // Byte 2
+        alligned_32bit_data[index_32bit] += buff[i+2];
+        alligned_32bit_data[index_32bit] = (alligned_32bit_data[index_32bit] << 8);
+        // Byte 3
+        alligned_32bit_data[index_32bit] += buff[i+1];
+        alligned_32bit_data[index_32bit] = (alligned_32bit_data[index_32bit] << 8);
+        // Byte 4
+        alligned_32bit_data[index_32bit] += buff[i];
+
+        index_32bit++;
+    }
+    
+    // Step 3: Write to flash
+    int status;
+    status = Flash_WriteArray(alligned_32bit_data, write_address, 128);
+    // Flash_Write_Array returns number of succesful writes
+    if (status == 128) {
+        return RES_OK;
+    } else {
+        return RES_ERROR;
+    }
 }
 
 //*************** eDisk_Format ***********
