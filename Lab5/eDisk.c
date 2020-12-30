@@ -157,8 +157,15 @@ enum DRESULT eDisk_WriteSector(
 enum DRESULT eDisk_Format(void){
 // erase all flash from EDISK_ADDR_MIN to EDISK_ADDR_MAX
 // **write this function**
-  
-	
-	
-  return RES_OK;
+  int status;
+  uint32_t erase_address = (uint32_t) EDISK_ADDR_MIN; // start of disk
+  while(erase_address < (uint32_t) EDISK_ADDR_MAX) {
+    status = Flash_Erase(erase_address); // erase 1k block
+    erase_address = erase_address + 1024;
+  }
+  if (status == RES_OK) {
+    return RES_OK;
+  } else {
+      return RES_ERROR;
+  }
 }
