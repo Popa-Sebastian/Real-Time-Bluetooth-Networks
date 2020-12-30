@@ -121,9 +121,18 @@ uint8_t appendfat(uint8_t num, uint8_t n){
 // Errors: return 255 on failure or disk full
 uint8_t OS_File_New(void){
 // **write this function**
-  
-	
-  return 255;
+    uint8_t index = 0;
+    if (bDirectoryLoaded == 0) {
+        MountDirectory();
+    }
+    while (index != 255) { // go through Directory and find a free space
+        if (Directory[index] == 255) {
+            return index;
+        } else {
+            index++;
+        }
+    }
+    return 255; // disk is full
 }
 
 //********OS_File_Size*************
