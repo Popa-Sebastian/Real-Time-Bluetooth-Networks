@@ -168,8 +168,17 @@ uint8_t OS_File_Size(uint8_t num){
 // Errors:  255 on failure or disk full
 uint8_t OS_File_Append(uint8_t num, uint8_t buf[512]){
 // **write this function**
-  
-  return 0; // replace this line
+    if (bDirectoryLoaded == 0) {
+        MountDirectory();
+    }
+    uint8_t sector = findfreesector();
+    if (sector == 255) {
+        return 255;
+    } else {
+        eDisk_WriteSector(buf, sector);
+        appendfat(num, sector);
+        return 0;
+    }
 }
 
 //********OS_File_Read*************
