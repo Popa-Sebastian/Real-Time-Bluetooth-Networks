@@ -131,7 +131,6 @@ enum DRESULT eDisk_WriteSector(
         alligned_32bit_data[index_32bit] = (alligned_32bit_data[index_32bit] << 8);
         // Byte 4
         alligned_32bit_data[index_32bit] += buff[i];
-
         index_32bit++;
     }
     
