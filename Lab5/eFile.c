@@ -74,8 +74,18 @@ uint8_t lastsector(uint8_t start){
 // (i.e. the FAT is corrupted).
 uint8_t findfreesector(void){
 // **write this function**
-  
-  return 0; // replace this line
+    int free_sector = -1;
+    uint8_t index = 0;
+    uint8_t last_sector;
+    while (1) {
+        last_sector = lastsector(Directory[index]);
+        if (last_sector == 255) { // no more files or no files in Directory
+            return free_sector + 1; // free sector is the last after greatest last sector
+        } else {
+            free_sector = max(free_sector, last_sector);
+            index++;
+        }
+    }
 }
 
 // Append a sector index 'n' at the end of file 'num'.
