@@ -191,8 +191,18 @@ uint8_t OS_File_Append(uint8_t num, uint8_t buf[512]){
 uint8_t OS_File_Read(uint8_t num, uint8_t location,
                      uint8_t buf[512]){
 // **write this function**
-  
-  return 0; // replace this line
+    uint8_t sector; 
+    sector = Directory[num];
+    if (sector == 255){
+        return 255;
+    }
+    for (int i = 0; i < location; i++){
+        sector = FAT[sector];
+        if(sector == 255){
+            return 255;
+        }
+    }
+    return eDisk_ReadSector(buf, sector);
 }
 
 //********OS_File_Flush*************
