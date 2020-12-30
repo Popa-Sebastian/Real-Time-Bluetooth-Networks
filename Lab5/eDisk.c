@@ -80,10 +80,11 @@ enum DRESULT eDisk_ReadSector(
         return RES_PARERR;
     }
     // Step 2: Read memory contents 8bits (1 byte) at a time
+    uint8_t *read_pt = (uint8_t *)read_address_pt;
     for (int i = 0; i < 512; i++) {
-        buff[i] = *(read_address_pt + (i * sizeof(uint8_t)));
+        buff[i] = *(read_pt);
+        read_pt +=1;
     }
-
     return RES_OK;
 }
 
@@ -120,17 +121,16 @@ enum DRESULT eDisk_WriteSector(
     for (int i = 0; i < 512; i = i + 4) {
         alligned_32bit_data[index_32bit] = 0;
         // Byte 1
-        alligned_32bit_data[index_32bit] += buff[i];
+        alligned_32bit_data[index_32bit] += buff[i+3];
         alligned_32bit_data[index_32bit] = (alligned_32bit_data[index_32bit] << 8);
         // Byte 2
-        alligned_32bit_data[index_32bit] += buff[i+1];
-        alligned_32bit_data[index_32bit] = (alligned_32bit_data[index_32bit] << 8);
-        // Byte 3
         alligned_32bit_data[index_32bit] += buff[i+2];
         alligned_32bit_data[index_32bit] = (alligned_32bit_data[index_32bit] << 8);
+        // Byte 3
+        alligned_32bit_data[index_32bit] += buff[i+1];
+        alligned_32bit_data[index_32bit] = (alligned_32bit_data[index_32bit] << 8);
         // Byte 4
-        alligned_32bit_data[index_32bit] += buff[i+3];
-
+        alligned_32bit_data[index_32bit] += buff[i];
         index_32bit++;
     }
     

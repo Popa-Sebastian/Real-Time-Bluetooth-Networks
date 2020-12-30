@@ -26,10 +26,24 @@ void MountDirectory(void){
 //    set bDirectoryLoaded=1
 // if bDirectoryLoaded is 1, simply return
 // **write this function**
-
-  
-	
+    int i;
+    uint8_t buff[512];
+    if (bDirectoryLoaded == 0) {
+        eDisk_ReadSector (buff, 255);
+        // Get Directory
+        for (i = 0; i< 256; i++) {
+            Directory[i] = buff[i];
+        }
+        // Get FAT
+        for (i = 256; i < 512 ; i++) {
+            FAT[i - 256] = buff[i];
+        }
+        // Set bDirectoryLoaded
+        bDirectoryLoaded = 1;
+    }
+    // else return
 }
+
 
 // Return the index of the last sector in the file
 // associated with a given starting sector.
@@ -37,9 +51,21 @@ void MountDirectory(void){
 // if the file has no end (i.e. the FAT is corrupted).
 uint8_t lastsector(uint8_t start){
 // **write this function**
-  
-	
-  return 0; // replace this line
+    uint8_t index_value;
+    uint8_t current_index;
+    if (start == 255) {
+      return 255;
+    } else {
+      current_index = start;
+      while (1) {
+          index_value = FAT[current_index];
+          if (index_value == 255) {
+              return current_index;
+          } else {
+              current_index = index_value;
+          }
+      }
+    }
 }
 
 // Return the index of the first free sector.
@@ -48,8 +74,19 @@ uint8_t lastsector(uint8_t start){
 // (i.e. the FAT is corrupted).
 uint8_t findfreesector(void){
 // **write this function**
-  
-  return 0; // replace this line
+    int free_sector = -1;
+    uint8_t index = 0;
+    uint8_t last_sector;
+    while (1) {
+        last_sector = lastsector(Directory[index]);
+        if (last_sector == 255) { // no more files or no files in Directory
+            // free sector is the next one after the greatest last sector
+            return free_sector + 1; 
+        } else {
+            free_sector = max(free_sector, last_sector);
+            index++;
+        }
+    }
 }
 
 // Append a sector index 'n' at the end of file 'num'.
@@ -60,9 +97,21 @@ uint8_t findfreesector(void){
 // if the file has no end (i.e. the FAT is corrupted).
 uint8_t appendfat(uint8_t num, uint8_t n){
 // **write this function**
-  
-	
-  return 0; // replace this line
+    uint8_t index;
+    index = Directory[num];
+    if (index == 255){
+        Directory[num] = n; // this is the first sector of a new file
+    } else {
+        while (1) {
+            if (FAT[index] == 255) {
+                FAT[index] = n; // append sector number to end
+                return 0;
+            } else {
+                index = FAT[index]; // keep searching for end
+            }
+        }
+    }
+    return 0; // success
 }
 
 //********OS_File_New*************
@@ -72,9 +121,18 @@ uint8_t appendfat(uint8_t num, uint8_t n){
 // Errors: return 255 on failure or disk full
 uint8_t OS_File_New(void){
 // **write this function**
-  
-	
-  return 255;
+    uint8_t index = 0;
+    if (bDirectoryLoaded == 0) {
+        MountDirectory();
+    }
+    while (index != 255) { // go through Directory and find a free space
+        if (Directory[index] == 255) {
+            return index;
+        } else {
+            index++;
+        }
+    }
+    return 255; // disk is full
 }
 
 //********OS_File_Size*************
@@ -84,9 +142,22 @@ uint8_t OS_File_New(void){
 // Errors:  none
 uint8_t OS_File_Size(uint8_t num){
 // **write this function**
-  
-	
-  return 0; // replace this line
+    uint8_t index;
+    uint8_t size = 0;
+    if (Directory[num] == 255) {
+        return 0; // this is a new file
+    } else {
+        index = Directory[num]; // start of file
+        while (size < 255) {
+            size++;
+            if (FAT[index] == 255) { //eof
+                return size;
+            } else {                 // continue
+                index = FAT[index];
+            }
+        }
+    }
+    return 255;
 }
 
 //********OS_File_Append*************
@@ -97,8 +168,17 @@ uint8_t OS_File_Size(uint8_t num){
 // Errors:  255 on failure or disk full
 uint8_t OS_File_Append(uint8_t num, uint8_t buf[512]){
 // **write this function**
-  
-  return 0; // replace this line
+    if (bDirectoryLoaded == 0) {
+        MountDirectory();
+    }
+    uint8_t sector = findfreesector();
+    if (sector == 255) {
+        return 255;
+    } else {
+        eDisk_WriteSector(buf, sector);
+        appendfat(num, sector);
+        return 0;
+    }
 }
 
 //********OS_File_Read*************
@@ -111,8 +191,18 @@ uint8_t OS_File_Append(uint8_t num, uint8_t buf[512]){
 uint8_t OS_File_Read(uint8_t num, uint8_t location,
                      uint8_t buf[512]){
 // **write this function**
-  
-  return 0; // replace this line
+    uint8_t sector; 
+    sector = Directory[num];
+    if (sector == 255){
+        return 255;
+    }
+    for (int i = 0; i < location; i++){
+        sector = FAT[sector];
+        if(sector == 255){
+            return 255;
+        }
+    }
+    return eDisk_ReadSector(buf, sector);
 }
 
 //********OS_File_Flush*************
@@ -123,8 +213,17 @@ uint8_t OS_File_Read(uint8_t num, uint8_t location,
 // Errors:  255 on disk write failure
 uint8_t OS_File_Flush(void){
 // **write this function**
-
-  return 0; // replace this line
+    int i;
+    int status;
+    uint8_t buff[512];
+    for (i = 0; i < 256; i++) {
+        buff[i] = Directory[i];
+    }
+    for (i = 256; i < 512; i++) {
+        buff[i] = FAT[i - 256];
+    }
+    status = eDisk_WriteSector(buff, 255);
+    return status;
 }
 
 //********OS_File_Format*************
@@ -136,6 +235,8 @@ uint8_t OS_File_Format(void){
 // call eDiskFormat
 // clear bDirectoryLoaded to zero
 // **write this function**
-
-  return 0; // replace this line
+    int status;
+    status = eDisk_Format();
+    bDirectoryLoaded = 0;
+    return status; // replace this line
 }
