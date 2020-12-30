@@ -80,7 +80,8 @@ uint8_t findfreesector(void){
     while (1) {
         last_sector = lastsector(Directory[index]);
         if (last_sector == 255) { // no more files or no files in Directory
-            return free_sector + 1; // free sector is the last after greatest last sector
+            // free sector is the next one after the greatest last sector
+            return free_sector + 1; 
         } else {
             free_sector = max(free_sector, last_sector);
             index++;
@@ -96,9 +97,21 @@ uint8_t findfreesector(void){
 // if the file has no end (i.e. the FAT is corrupted).
 uint8_t appendfat(uint8_t num, uint8_t n){
 // **write this function**
-  
-	
-  return 0; // replace this line
+    uint8_t index;
+    index = Directory[num];
+    if (index == 255){
+        Directory[num] = n; // this is the first sector of a new file
+    } else {
+        while (1) {
+            if (FAT[index] == 255) {
+                FAT[index] = n; // append sector number to end
+                return 0;
+            } else {
+                index = FAT[index]; // keep searching for end
+            }
+        }
+    }
+    return 0; // success
 }
 
 //********OS_File_New*************
