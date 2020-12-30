@@ -142,9 +142,22 @@ uint8_t OS_File_New(void){
 // Errors:  none
 uint8_t OS_File_Size(uint8_t num){
 // **write this function**
-  
-	
-  return 0; // replace this line
+    uint8_t index;
+    uint8_t size = 0;
+    if (Directory[num] == 255) {
+        return 0; // this is a new file
+    } else {
+        index = Directory[num]; // start of file
+        while (size < 255) {
+            size++;
+            if (FAT[index] == 255) { //eof
+                return size;
+            } else {                 // continue
+                index = FAT[index];
+            }
+        }
+    }
+    return 255;
 }
 
 //********OS_File_Append*************
